@@ -15,5 +15,9 @@
   "bugs": {
     "url": "https://github.com/gundelsby/aoc2018/issues"
   },
-  "homepage": "https://github.com/gundelsby/aoc2018#readme"
+  "homepage": "https://github.com/gundelsby/aoc2018#readme",
+  "devDependencies": {
+    "@sinonjs/referee": "^2.6.0",
+    "mocha": "^5.2.0"
+  }
 }
