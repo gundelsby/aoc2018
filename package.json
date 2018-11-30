@@ -1,0 +1,19 @@
+{
+  "name": "aoc2018",
+  "version": "1.0.0",
+  "description": "Solutions for AoC 2018",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gundelsby/aoc2018.git"
+  },
+  "author": "Ola Christian Gundelsby",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gundelsby/aoc2018/issues"
+  },
+  "homepage": "https://github.com/gundelsby/aoc2018#readme"
+}
