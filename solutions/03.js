@@ -3,15 +3,48 @@ const input = fs.readFileSync("data/03-input.txt", "utf-8").split("\r\n");
 
 // #1280 @ 916,11: 4x19
 const reCmd = /^#(\d+)\s@\s(\d+),(\d+):\s(\d+)x(\d+).*$/;
+const claimMap = buildClaimMap(input);
+const grid = createGrid(claimMap);
 
-console.log(countDoubleBooked(input));
+console.log(countDoubleBooked());
+console.log(findUniqueClaim());
 
-function countDoubleBooked(commands) {
-  const cmdMap = createCommandMap(commands);
+function findUniqueClaim() {
+  const unique = Object.keys(claimMap).filter((id) => {
+    const { pos, dim } = claimMap[id];
+    const xBound = pos.x + dim.width;
+    const yBound = pos.y + dim.height;
+
+    for (let x = pos.x; x < xBound; x++) {
+      for (let y = pos.y; y < yBound; y++) {
+        if (grid[x][y] > 1) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  })[0];
+
+  return unique;
+}
+
+function countDoubleBooked() {
+  return grid.reduce((count, x) => {
+    return (
+      count +
+      x.reduce((doubleCount, y) => {
+        return doubleCount + (y > 1 ? 1 : 0);
+      }, 0)
+    );
+  }, 0);
+}
+
+function createGrid(claimMap) {
   const grid = [];
 
-  Object.keys(cmdMap).forEach((id) => {
-    const { pos, dim } = cmdMap[id];
+  Object.keys(claimMap).forEach((id) => {
+    const { pos, dim } = claimMap[id];
     const xBound = pos.x + dim.width;
     const yBound = pos.y + dim.height;
     for (let x = pos.x; x < xBound; x++) {
@@ -24,20 +57,13 @@ function countDoubleBooked(commands) {
     }
   });
 
-  return grid.reduce((count, x) => {
-    return (
-      count +
-      x.reduce((doubleCount, y) => {
-        return doubleCount + (y > 1 ? 1 : 0);
-      }, 0)
-    );
-  }, 0);
+  return grid;
 }
 
-function createCommandMap(commands) {
+function buildClaimMap(claims) {
   const cmdMap = {};
 
-  commands
+  claims
     .map(parseCommandString)
     .filter((obj) => obj !== null)
     .forEach(({ id, x, y, width, height }) => {
