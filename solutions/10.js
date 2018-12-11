@@ -1,71 +1,77 @@
 const fs = require('fs');
 const points = fs
   .readFileSync('data/10-input.txt', 'utf-8')
+  // .readFileSync('data/10-example.txt', 'utf-8')
   .split('\n')
   .map((line) => line.trim())
   .map(parseLine);
 
-const result = findMessage(points);
-console.log(result.seconds);
-drawGrid(result.points);
+const startTime = 10459;
+const endTime = 10459;
+const snapshots = createSnapshots(points, startTime, endTime);
+
+snapshots.forEach((snapshot) => {
+  console.log(`\n\n@${snapshot.seconds} seconds:`);
+  drawGrid(snapshot.points);
+});
 
 function drawGrid(points) {
   const { maxX, minX, maxY, minY } = getGridBounds(points);
-  const gridWidth = Math.abs(maxX) + Math.abs(minX);
-  const gridHeight = Math.abs(maxY) + Math.abs(minY);
-  const grid = new Array(gridWidth).fill(new Array(gridHeight).fill('.'));
+  const gridWidth = Math.abs(maxX - minX) + 1;
+  const gridHeight = Math.abs(maxY - minY) + 1;
+  const grid = createGrid(gridWidth, gridHeight);
 
-  console.log(`Drawing grid with dimensions: ${gridWidth}x${gridHeight}`);
+  if (gridHeight > 10) {
+    return;
+  }
 
-  result.points.forEach(({ pos }) => {
-    const x = pos.x + Math.abs(minX) - 1;
-    const y = pos.y + Math.abs(minY) - 1;
-    if (!grid[x] || !grid[x][y]) {
+  console.log(
+    `Drawing grid with dimensions: ${gridWidth}x${gridHeight} (${gridWidth * gridHeight} points)`
+  );
+
+  points.forEach(({ pos }) => {
+    const x = pos.x - minX;
+    const y = pos.y - minY;
+    if (!grid[y] || !grid[y][x]) {
       console.log('OOB', x, y);
     }
-    grid[x][y] = '#';
+    grid[y][x] = '#';
   });
 
-  grid.forEach((row) => {
-    console.log(row.join(''));
+  console.log(grid.join('\n'));
+}
+
+function createGrid(width, height) {
+  const grid = [];
+  for (let i = 0; i < height; i++) {
+    grid.push(new Array(width).fill('.'));
+  }
+
+  return grid;
+}
+
+function calcSnapshot(points, runTime) {
+  return points.map(({ pos, vel }) => {
+    return {
+      pos: {
+        x: pos.x + vel.x * runTime,
+        y: pos.y + vel.y * runTime
+      }
+    };
   });
 }
 
-function findMessage(points) {
-  let gridSize;
-  let oldGridSize;
-  let oldPoints;
-  let seconds = 0;
+function createSnapshots(points, startTime, endTime) {
+  const snapshots = [];
 
-  do {
-    oldGridSize = calcGridSize(points);
-    oldPoints = points.map(({ pos, vel }) => {
-      return { pos: Object.assign({}, pos), vel: Object.assign({}, vel) };
+  for (let i = startTime; i <= endTime; i++) {
+    snapshots.push({
+      points: calcSnapshot(points, i),
+      seconds: i
     });
+  }
 
-    seconds++;
-    points = points.map(({ pos, vel }) => {
-      return {
-        pos: {
-          x: pos.x + vel.x,
-          y: pos.y + vel.y
-        },
-        vel
-      };
-    });
-    gridSize = calcGridSize(points);
-  } while (gridSize < oldGridSize);
-
-  return {
-    points: oldPoints,
-    seconds: seconds - 1
-  };
-}
-
-function calcGridSize(points) {
-  const { maxX, minX, maxY, minY } = getGridBounds(points);
-
-  return (maxX - minX) * (maxY - minY);
+  return snapshots;
 }
 
 function getGridBounds(points) {
