@@ -1,5 +1,6 @@
 {
     "standard.enable": false,
     "eslint.autoFixOnSave": true,
-    "eslint.alwaysShowStatus": true
+    "eslint.alwaysShowStatus": true,
+    "editor.formatOnSave": true
 }
