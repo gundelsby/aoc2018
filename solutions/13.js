@@ -1,7 +1,8 @@
 const Cart = require('./13/cart.js');
 // const input = require('fs').readFileSync('data/13-example-01.txt', 'utf-8');
 // const input = require('fs').readFileSync('data/13-example-02.txt', 'utf-8');
-const input = require('fs').readFileSync('data/13-input.txt', 'utf-8');
+// const input = require('fs').readFileSync('data/13-input.txt', 'utf-8');
+const input = require('fs').readFileSync('data/13-input-tags.txt', 'utf-8');
 const map = input
   .split(/\r?\n/g)
   .filter((line) => line.trim() !== '')
@@ -36,6 +37,7 @@ do {
       return true;
     });
   }
+  moves++;
 } while (carts.length > 1);
 
 console.log(`Last cart remaining is #${carts[0].id}, at`, carts[0].position);
