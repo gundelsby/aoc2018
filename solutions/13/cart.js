@@ -29,22 +29,26 @@ function turn(currentDirection, turn) {
 }
 
 module.exports = class {
-  constructor(map, position, direction) {
+  constructor(id, map, position, direction) {
+    this.id = id;
     this.map = map;
     this.position = { ...position };
     this.direction = { ...direction };
+    this.history = [];
     this.lastIntersectionChoice = null;
   }
 
   move() {
+    this.history.push({ position: { ...this.position }, direction: { ...this.direction } });
     const x = this.position.x + this.direction.x;
     const y = this.position.y + this.direction.y;
     if (!this.map[y] || !this.map[y][x]) {
+      console.log(`Cart #${this.id}`);
       console.log(`OOB: ${x},${y}`);
+      console.log(this.history);
     }
     this.position = { x, y };
     this.changeDirection();
-    console.log('=>', this.position, this.direction);
   }
 
   navigateIntersection() {
@@ -75,23 +79,29 @@ module.exports = class {
         this.navigateIntersection();
         break;
       case '\\':
-        // either turn left or right, depending on incoming direction
-        if (this.direction === directions.LEFT) {
+        if (isSameDirection(this.direction, directions.LEFT)) {
           this.direction = directions.UP;
-        } else {
+        } else if (isSameDirection(this.direction, directions.UP)) {
+          this.direction = directions.LEFT;
+        } else if (isSameDirection(this.direction, directions.DOWN)) {
           this.direction = directions.RIGHT;
+        } else {
+          this.direction = directions.DOWN;
         }
         break;
       case '/':
-        // either turn left or right, depending on incoming direction
-        if (this.direction === directions.RIGHT) {
-          this.direction = directions.UP;
-        } else {
+        if (isSameDirection(this.direction, directions.LEFT)) {
+          this.direction = directions.DOWN;
+        } else if (isSameDirection(this.direction, directions.UP)) {
+          this.direction = directions.RIGHT;
+        } else if (isSameDirection(this.direction, directions.DOWN)) {
           this.direction = directions.LEFT;
+        } else {
+          this.direction = directions.UP;
         }
         break;
       default:
-        // continue in same direction, handles - and |
+        // continue in same direction, handles -, | and leftover starting positions
         break;
     }
   }

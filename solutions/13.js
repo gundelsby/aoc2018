@@ -1,4 +1,6 @@
 const Cart = require('./13/cart.js');
+// const input = require('fs').readFileSync('data/13-example-01.txt', 'utf-8');
+// const input = require('fs').readFileSync('data/13-example-02.txt', 'utf-8');
 const input = require('fs').readFileSync('data/13-input.txt', 'utf-8');
 const map = input
   .split(/\r?\n/g)
@@ -7,18 +9,36 @@ const map = input
     return line.split('');
   });
 
-const carts = createCarts(map);
-let collisionPosition;
+let carts = createCarts(map);
 let moves = 0;
 
-while (!collisionPosition) {
-  console.log(`Move #${moves++}`);
-  collisionPosition = checkCollisions(carts);
+do {
   carts.sort(cmpCartPositions);
   carts.forEach((cart) => cart.move());
-}
 
-console.log(collisionPosition);
+  const collisionPositions = checkCollisions(carts);
+  if (collisionPositions.length) {
+    console.log(`Move #${moves++}`);
+    console.log(
+      'Collision(s) at',
+      collisionPositions.map((position) => `${position.x},${position.y}`).join(', ')
+    );
+    carts = carts.filter((cart) => {
+      if (
+        collisionPositions.find((position) => {
+          return cmpCartPositions({ position }, cart) === 0;
+        })
+      ) {
+        console.log(`=> Removing cart #${cart.id}`);
+        return false;
+      }
+
+      return true;
+    });
+  }
+} while (carts.length > 1);
+
+console.log(`Last cart remaining is #${carts[0].id}, at`, carts[0].position);
 
 function cmpCartPositions(a, b) {
   const yCmp = a.position.y - b.position.y;
@@ -27,17 +47,23 @@ function cmpCartPositions(a, b) {
 }
 
 function checkCollisions(carts) {
-  return carts
+  const positions = [];
+
+  carts
     .slice()
     .sort(cmpCartPositions)
-    .reduce((collisionFound, cart, idx, arr) => {
-      if (collisionFound || idx < 1) {
-        return collisionFound;
+    .forEach((cart, idx, arr) => {
+      if (idx < 1) {
+        return;
       }
 
       const lastCart = arr[idx - 1];
-      return cmpCartPositions(cart, lastCart) !== 0 ? false : cart.position;
+      if (cmpCartPositions(cart, lastCart) === 0) {
+        positions.push(cart.position);
+      }
     }, false);
+
+  return positions;
 }
 
 function createCarts(map) {
@@ -48,12 +74,13 @@ function createCarts(map) {
     '>': { x: 1, y: 0 }
   };
   const carts = [];
+  let cartId = 0;
 
   map.forEach((col, y) => {
     col.forEach((row, x) => {
       if (cartDirections[row]) {
         console.log(`\nNew cart: ${row} ${cartDirections[row]} at ${x},${y}`);
-        carts.push(new Cart(map, { x, y }, cartDirections[row]));
+        carts.push(new Cart(cartId++, map, { x, y }, cartDirections[row]));
       }
     });
   });
