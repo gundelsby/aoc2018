@@ -4,27 +4,52 @@ const fs = require('fs');
 const samples = parseSampleInput(fs.readFileSync('data/16-input-p1.txt', 'utf-8').split(/\r?\n/));
 const sampleResults = testSamples(samples);
 console.log('[1]:', sampleResults.filter(({ matches }) => matches.length > 2).length);
-console.log(sampleResults[0].matches);
 
-// build test case for each function by adding all samples with the registered name to a list, and then
+// build test case for each function by adding all samples with the registered id to a list, and then
 // test each opcode. The opcode for which all samples has a correctly verified result is the right one.
+const opMap = {};
+sampleResults.forEach(({ matches, sampleId }) => {
+  matches.forEach((opId) => {
+    opMap[opId] = opMap[opId] || { tests: [] };
+    opMap[opId].tests.push(sampleId);
+  });
+});
+
+Object.keys(opMap).forEach((opId) => {
+  const cpu = new CPU();
+  for (let i = 0; cpu.operations.length; i++) {
+    const allPassed = opMap[opId].tests.reduce((passed, sampleId) => {
+      const test = samples[sampleId];
+      return passed ? testSample(test, cpu, i) : false;
+    }, true);
+
+    if (allPassed) {
+      opMap[opId].realOpId = i;
+      break;
+    }
+  }
+});
+
+console.log(opMap);
 
 const program = fs.readFileSync('data/16-input-p2.txt', 'utf-8');
 
+function testSample({ before, command, after }, cpu, opIndex) {
+  cpu.setState(before);
+  cpu.execute(opIndex, command[1], command[2], command[3]);
+
+  return cpu.registers.every((val, idx) => {
+    return val === after[idx];
+  });
+}
+
 function testSamples(samples) {
   const cpu = new CPU();
-  const results = samples.map(({ before, command, after }, sampleId) => {
+  const results = samples.map((sample, sampleId) => {
     let matches = [];
     for (let i = 0; i < cpu.operations.length; i++) {
-      cpu.setState(before);
-      cpu.execute(i, command[1], command[2], command[3]);
-
-      if (
-        cpu.registers.every((val, idx) => {
-          return val === after[idx];
-        })
-      ) {
-        matches.push(cpu.operations[i].name.replace('bound ', ''));
+      if (testSample(sample, cpu, i)) {
+        matches.push(i);
       }
 
       if (matches > 2) {
