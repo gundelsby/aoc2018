@@ -2,15 +2,19 @@ const CPU = require('./16/cpu.js');
 const fs = require('fs');
 
 const samples = parseSampleInput(fs.readFileSync('data/16-input-p1.txt', 'utf-8').split(/\r?\n/));
-const tripleFriends = findTriples(samples);
-console.log('[1]:', tripleFriends.length);
+const sampleResults = testSamples(samples);
+console.log('[1]:', sampleResults.filter(({ matches }) => matches.length > 2).length);
+console.log(sampleResults[0].matches);
+
+// build test case for each function by adding all samples with the registered name to a list, and then
+// test each opcode. The opcode for which all samples has a correctly verified result is the right one.
 
 const program = fs.readFileSync('data/16-input-p2.txt', 'utf-8');
 
-function findTriples(samples) {
+function testSamples(samples) {
   const cpu = new CPU();
-  const found = samples.map(({ before, command, after }) => {
-    let matches = 0;
+  const results = samples.map(({ before, command, after }, sampleId) => {
+    let matches = [];
     for (let i = 0; i < cpu.operations.length; i++) {
       cpu.setState(before);
       cpu.execute(i, command[1], command[2], command[3]);
@@ -20,7 +24,7 @@ function findTriples(samples) {
           return val === after[idx];
         })
       ) {
-        matches++;
+        matches.push(cpu.operations[i].name.replace('bound ', ''));
       }
 
       if (matches > 2) {
@@ -28,10 +32,10 @@ function findTriples(samples) {
       }
     }
 
-    return matches > 2;
+    return { sampleId, matches };
   });
 
-  return found.filter((found) => !!found);
+  return results;
 }
 
 function parseSampleInput(lines) {
