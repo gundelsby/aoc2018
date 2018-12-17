@@ -2,65 +2,105 @@ const CPU = require('./16/cpu.js');
 const fs = require('fs');
 
 const samples = parseSampleInput(fs.readFileSync('data/16-input-p1.txt', 'utf-8').split(/\r?\n/));
-const sampleResults = testSamples(samples);
-console.log('[1]:', sampleResults.filter(({ matches }) => matches.length > 2).length);
+const results = analyzeSamples(samples);
+console.log('[1]:', results.filter((sampleResult) => sampleResult.length > 2).length);
 
-// build test case for each function by adding all samples with the registered id to a list, and then
-// test each opcode. The opcode for which all samples has a correctly verified result is the right one.
-const opMap = {};
-sampleResults.forEach(({ matches, sampleId }) => {
-  matches.forEach((opId) => {
-    opMap[opId] = opMap[opId] || { tests: [] };
-    opMap[opId].tests.push(sampleId);
+const program = fs
+  .readFileSync('data/16-input-p2.txt', 'utf-8')
+  .split(/\r?\n/)
+  .map((line) => line.split(' ').map(Number));
+
+const opCodeMap = mapOperations(samples, results);
+// console.log(opCodeMap[15]);
+// console.log('[2:', runProgram(program, opsMap));
+
+function mapOperations(samples, results) {
+  const opCodeMap = {};
+
+  samples.forEach((sample, idx) => {
+    const sampleOpCode = sample.command[0];
+    opCodeMap[sampleOpCode] = opCodeMap[sampleOpCode] || { testCases: [] };
+
+    opCodeMap[sampleOpCode].testCases.push(idx);
   });
-});
 
-Object.keys(opMap).forEach((opId) => {
-  const cpu = new CPU();
-  for (let i = 0; cpu.operations.length; i++) {
-    const allPassed = opMap[opId].tests.reduce((passed, sampleId) => {
-      const test = samples[sampleId];
-      return passed ? testSample(test, cpu, i) : false;
-    }, true);
+  Object.keys(opCodeMap).forEach((opCode) => {
+    console.log(
+      `\n\nFinding cpu opcode for sample opcode ${opCode} (${
+        opCodeMap[opCode].testCases.length
+      } test cases)`
+    );
+    const passingCpuOpCodes = opCodeMap[opCode].testCases.reduce((passingOpCodes, current) => {
+      // console.log(`\nChecking test case #${current}`);
+      if (!passingOpCodes) {
+        // console.log(`Passed for ${current}:`, results[current]);
+        return results[current];
+      }
 
-    if (allPassed) {
-      opMap[opId].realOpId = i;
-      break;
-    }
+      if (passingOpCodes.length === 0) {
+        // console.log('No opcodes to test, returning empty array');
+        return [];
+      }
+
+      // console.log('Previously passed:', passingOpCodes);
+      // console.log(`Passed for ${current}:`, results[current]);
+      return passingOpCodes.filter((opCode) => {
+        // console.log(`Checking opcode ${opCode}`, results[current].indexOf(opCode) > -1);
+        return results[current].indexOf(opCode) > -1;
+      });
+    }, null);
+
+    console.log('=> using', passingCpuOpCodes);
+    opCodeMap[opCode].cpuOpCode = passingCpuOpCodes;
+  });
+
+  while (
+    Object.keys(opCodeMap).filter((opCode) => {
+      return opCodeMap[opCode].cpuOpCode.length > 1;
+    }).length
+  ) {
+    const singles = Object.keys(opCodeMap)
+      .filter((opCode) => opCodeMap[opCode].cpuOpCode.length === 1)
+      .map((opCode) => opCodeMap[opCode].cpuOpCode[0]);
+
+    // remove singles from opcode lists with more than one entry
   }
-});
 
-console.log(opMap);
-
-const program = fs.readFileSync('data/16-input-p2.txt', 'utf-8');
-
-function testSample({ before, command, after }, cpu, opIndex) {
-  cpu.setState(before);
-  cpu.execute(opIndex, command[1], command[2], command[3]);
-
-  return cpu.registers.every((val, idx) => {
-    return val === after[idx];
-  });
+  return opCodeMap;
 }
 
-function testSamples(samples) {
+function runProgram(program, opsMap) {
   const cpu = new CPU();
-  const results = samples.map((sample, sampleId) => {
+
+  program.forEach((command) => {
+    command[0] = opsMap[command[0]];
+    cpu.execute(...command);
+  });
+
+  return cpu.getState()[0];
+}
+
+function analyzeSamples(samples) {
+  const cpu = new CPU();
+  const validOperations = samples.map((sample) => {
     let matches = [];
     for (let i = 0; i < cpu.operations.length; i++) {
-      if (testSample(sample, cpu, i)) {
+      if (testSample(cpu, sample, i)) {
         matches.push(i);
-      }
-
-      if (matches > 2) {
-        break;
       }
     }
 
-    return { sampleId, matches };
+    return matches;
   });
 
-  return results;
+  return validOperations;
+}
+
+function testSample(cpu, { before, command, after }, opId) {
+  cpu.setState(before);
+  cpu.execute(opId, command[1], command[2], command[3]);
+
+  return cpu.getState().every((val, idx) => val === after[idx]);
 }
 
 function parseSampleInput(lines) {

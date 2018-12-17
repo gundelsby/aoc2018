@@ -102,6 +102,10 @@ module.exports = class CPU {
     this.registers = registers.slice(0, 4);
   }
 
+  getState() {
+    return this.registers.slice();
+  }
+
   execute(opcode, inA, inB, out) {
     this.operations[opcode](inA, inB, out);
   }
