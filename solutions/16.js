@@ -11,60 +11,70 @@ const program = fs
   .map((line) => line.split(' ').map(Number));
 
 const opCodeMap = mapOperations(samples, results);
-// console.log(opCodeMap[15]);
-// console.log('[2:', runProgram(program, opsMap));
+console.log('[2]:', runProgram(program, opCodeMap));
 
 function mapOperations(samples, results) {
+  const sampleOpCodeTests = buildSampleOpCodeTestsMap(samples);
+  const sampleOpCodePassingTests = findSampleOpCodesPassingTests(sampleOpCodeTests, results);
+  const passedOpCodes = Object.keys(sampleOpCodePassingTests);
+  const opCodeMap = {};
+
+  while (passedOpCodes.filter((opCode) => sampleOpCodePassingTests[opCode].length > 1).length) {
+    const singles = passedOpCodes
+      .filter((opCode) => sampleOpCodePassingTests[opCode].length === 1)
+      .map((opCode) => sampleOpCodePassingTests[opCode][0]);
+
+    singles.forEach((cpuOpCodeToRemove) => {
+      passedOpCodes
+        .filter((opCode) => sampleOpCodePassingTests[opCode].length > 1)
+        .forEach((opCode) => {
+          sampleOpCodePassingTests[opCode] = sampleOpCodePassingTests[opCode].filter(
+            (passedOpCode) => passedOpCode !== cpuOpCodeToRemove
+          );
+        });
+    });
+  }
+
+  passedOpCodes.forEach((sampleOpCode) => {
+    opCodeMap[sampleOpCode] = sampleOpCodePassingTests[sampleOpCode][0];
+  });
+
+  return opCodeMap;
+}
+
+function findSampleOpCodesPassingTests(sampleOpCodeTests, sampleResults) {
+  const sampleOpCodePassingTests = {};
+
+  Object.keys(sampleOpCodeTests).forEach((opCode) => {
+    const passingCpuOpCodes = sampleOpCodeTests[opCode].reduce((passingOpCodes, current) => {
+      if (!passingOpCodes) {
+        return sampleResults[current];
+      }
+
+      if (passingOpCodes.length === 0) {
+        return [];
+      }
+
+      return passingOpCodes.filter((opCode) => {
+        return sampleResults[current].indexOf(opCode) > -1;
+      });
+    }, null);
+
+    sampleOpCodePassingTests[opCode] = passingCpuOpCodes;
+  });
+
+  return sampleOpCodePassingTests;
+}
+
+function buildSampleOpCodeTestsMap(samples) {
   const opCodeMap = {};
 
   samples.forEach((sample, idx) => {
     const sampleOpCode = sample.command[0];
-    opCodeMap[sampleOpCode] = opCodeMap[sampleOpCode] || { testCases: [] };
+    opCodeMap[sampleOpCode] = opCodeMap[sampleOpCode] || [];
 
-    opCodeMap[sampleOpCode].testCases.push(idx);
+    opCodeMap[sampleOpCode].push(idx);
   });
-
-  Object.keys(opCodeMap).forEach((opCode) => {
-    console.log(
-      `\n\nFinding cpu opcode for sample opcode ${opCode} (${
-        opCodeMap[opCode].testCases.length
-      } test cases)`
-    );
-    const passingCpuOpCodes = opCodeMap[opCode].testCases.reduce((passingOpCodes, current) => {
-      // console.log(`\nChecking test case #${current}`);
-      if (!passingOpCodes) {
-        // console.log(`Passed for ${current}:`, results[current]);
-        return results[current];
-      }
-
-      if (passingOpCodes.length === 0) {
-        // console.log('No opcodes to test, returning empty array');
-        return [];
-      }
-
-      // console.log('Previously passed:', passingOpCodes);
-      // console.log(`Passed for ${current}:`, results[current]);
-      return passingOpCodes.filter((opCode) => {
-        // console.log(`Checking opcode ${opCode}`, results[current].indexOf(opCode) > -1);
-        return results[current].indexOf(opCode) > -1;
-      });
-    }, null);
-
-    console.log('=> using', passingCpuOpCodes);
-    opCodeMap[opCode].cpuOpCode = passingCpuOpCodes;
-  });
-
-  while (
-    Object.keys(opCodeMap).filter((opCode) => {
-      return opCodeMap[opCode].cpuOpCode.length > 1;
-    }).length
-  ) {
-    const singles = Object.keys(opCodeMap)
-      .filter((opCode) => opCodeMap[opCode].cpuOpCode.length === 1)
-      .map((opCode) => opCodeMap[opCode].cpuOpCode[0]);
-
-    // remove singles from opcode lists with more than one entry
-  }
 
   return opCodeMap;
 }
