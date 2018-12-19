@@ -1,6 +1,6 @@
 const fs = require('fs');
-// const input = fs.readFileSync('data/18-input.txt', 'utf-8').split(/\r?\n/);
-const input = fs.readFileSync('data/18-example.txt', 'utf-8').split(/\r?\n/);
+const input = fs.readFileSync('data/18-input.txt', 'utf-8').split(/\r?\n/);
+// const input = fs.readFileSync('data/18-example.txt', 'utf-8').split(/\r?\n/);
 const SQUARE = {
   TREE: '|',
   OPEN: '.',
@@ -9,13 +9,49 @@ const SQUARE = {
 
 const map = buildMap(input);
 const result = runSimulation(map, 10);
+const counts = countTypes(result);
+console.log(counts);
+console.log(`[1]: ${counts[SQUARE.TREE] * counts[SQUARE.LUMBERYARD]}`);
+
+part2(map);
+
+// cycles are 28 ticks long
+// array.shift removes first item, array.push adds to back
+// when diff === array.shift && i > 400 assume repeat cycle and calculate remaining steps rather than simulate
+function part2(map) {
+  let score;
+  for (let i = 0; i < 449; i++) {
+    map = runSimulation(map, 1);
+    const counts = countTypes(map);
+    const newScore = counts[SQUARE.TREE] * counts[SQUARE.LUMBERYARD];
+    const diff = newScore - score;
+    console.log(i, diff);
+    score = newScore;
+  }
+}
+
+function countTypes(map) {
+  const acres = [];
+  map.forEach((arr) => acres.push(...arr));
+  return acres.reduce((r, acre) => {
+    switch (acre) {
+      case SQUARE.TREE:
+        r[SQUARE.TREE] = r[SQUARE.TREE] ? r[SQUARE.TREE] + 1 : 1;
+        return r;
+      case SQUARE.LUMBERYARD:
+        r[SQUARE.LUMBERYARD] = r[SQUARE.LUMBERYARD] ? r[SQUARE.LUMBERYARD] + 1 : 1;
+        return r;
+      case SQUARE.OPEN:
+        r[SQUARE.OPEN] = r[SQUARE.OPEN] ? r[SQUARE.OPEN] + 1 : 1;
+        return r;
+    }
+  }, {});
+}
 
 function runSimulation(map, ticks) {
-  let result;
+  let result = createEmptyMap(map.length, map[0].length);
 
   for (let i = 0; i < ticks; i++) {
-    result = createEmptyMap(map.length, map[0].length);
-
     for (let x = 0; x < map.length; x++) {
       for (let y = 0; y < map[x].length; y++) {
         const value = map[x][y];
@@ -39,8 +75,7 @@ function runSimulation(map, ticks) {
         }
       }
     }
-
-    map = result;
+    map = result.map((arr) => arr.slice());
   }
 
   return result;
@@ -48,12 +83,12 @@ function runSimulation(map, ticks) {
 
 function countNeighbors(map, targetX, targetY) {
   const count = {};
-  const xBound = map.length;
-  const yBound = map[0].length;
+  const xBound = map.length - 1;
+  const yBound = map[0].length - 1;
 
   for (let x = targetX - 1; x < targetX + 2; x++) {
     for (let y = targetY - 1; y < targetY + 2; y++) {
-      if (x !== targetX && y !== targetY && inRange(x, 0, xBound) && inRange(y, 0, yBound)) {
+      if ((x !== targetX || y !== targetY) && inRange(x, 0, xBound) && inRange(y, 0, yBound)) {
         const value = map[x][y];
         count[value] = count[value] ? count[value] + 1 : 1;
       }
