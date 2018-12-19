@@ -1,7 +1,8 @@
 module.exports = class CPU {
   // According to the manual, the device has four registers (numbered 0 through 3) that can be manipulated by instructions containing one of 16 opcodes. The registers start with the value 0.
-  constructor() {
-    this.registers = [0, 0, 0, 0];
+  constructor(instructionPointerRegister) {
+    this.registers = [0, 0, 0, 0, 0, 0];
+    this.instructionPointer = 0;
     this.operations = [
       this.addr.bind(this),
       this.addi.bind(this),
@@ -99,14 +100,19 @@ module.exports = class CPU {
   }
 
   setState(registers) {
-    this.registers = registers.slice(0, 4);
+    this.registers = registers.slice(0, 6);
   }
 
   getState() {
     return this.registers.slice();
   }
 
-  execute(opcode, inA, inB, out) {
-    this.operations[opcode](inA, inB, out);
+  sipr(register) {
+    this.instructionPointer = register;
+  }
+
+  execute(name, inA, inB, out) {
+    this[name](inA, inB, out);
+    return this.registers[this.instructionPointer]++;
   }
 };
