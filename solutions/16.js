@@ -1,4 +1,4 @@
-const CPU = require('./16/cpu.js');
+const CPU = require('./lib/cpu.js');
 const fs = require('fs');
 
 const samples = parseSampleInput(fs.readFileSync('data/16-input-p1.txt', 'utf-8').split(/\r?\n/));
