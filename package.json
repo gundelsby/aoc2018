@@ -4,7 +4,8 @@
   "description": "Solutions for AoC 2018",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --reporter min test/**/*-test.js",
+    "test:tdd": "npm run test -- --watch"
   },
   "repository": {
     "type": "git",
