@@ -10,23 +10,55 @@ const SQUARE = {
 const map = buildMap(input);
 const result = runSimulation(map, 10);
 const counts = countTypes(result);
-console.log(counts);
-console.log(`[1]: ${counts[SQUARE.TREE] * counts[SQUARE.LUMBERYARD]}`);
 
-part2(map);
+console.log(`[1]: ${counts[SQUARE.TREE] * counts[SQUARE.LUMBERYARD]}`);
+console.log('[2]:', part2(map, 1000000000));
 
 // cycles are 28 ticks long
 // array.shift removes first item, array.push adds to back
 // when diff === array.shift && i > 400 assume repeat cycle and calculate remaining steps rather than simulate
-function part2(map) {
+function part2(map, ticks) {
   let score;
-  for (let i = 0; i < 449; i++) {
+  let cycle = [];
+  let i = 0;
+  for (; i < ticks; i++) {
     map = runSimulation(map, 1);
     const counts = countTypes(map);
     const newScore = counts[SQUARE.TREE] * counts[SQUARE.LUMBERYARD];
     const diff = newScore - score;
-    console.log(i, diff);
     score = newScore;
+
+    cycle.push(diff);
+    if (cycle.length > 28) {
+      const removed = cycle.shift();
+      if (removed === diff) {
+        break;
+      }
+    }
+  }
+
+  return score + calcScoreFromDiffCycle(cycle, ticks - i - 1); // tick 0 counts, so subtract an extra tick;
+}
+
+function calcScoreFromDiffCycle(diffs, ticks) {
+  const diffIterator = loopArray(diffs);
+  let sum = 0;
+
+  for (let i = 0; i < ticks; i++) {
+    sum += diffIterator.next().value;
+  }
+
+  return sum;
+}
+
+function* loopArray(array) {
+  let position = 0;
+  while (true) {
+    yield array[position];
+    position++;
+    if (position === array.length) {
+      position = 0;
+    }
   }
 }
 
